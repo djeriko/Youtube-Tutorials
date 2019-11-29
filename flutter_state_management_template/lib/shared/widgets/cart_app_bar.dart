@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:provider/provider.dart';
 import 'package:state_management_example/shared/models/product.dart';
 import 'package:state_management_example/shared/styles/app_colors.dart';
 import 'package:state_management_example/shared/styles/app_fonts.dart';
 import 'package:state_management_example/shared/utils/app_variables.dart';
+import '../../cart/cart.dart';
 import 'cart_icon_button.dart';
 import 'cart_list_tile.dart';
 
@@ -18,7 +21,6 @@ class CartAppBar extends StatefulWidget {
 
 class _CartAppBarState extends State<CartAppBar> {
   bool showCart = false;
-  //TODO: 9. Remove product and quantity placeholders
   Product product = Product(
       name: 'Bluebarries',
       description: 'Delicious blueberries from the wild.',
@@ -34,7 +36,8 @@ class _CartAppBarState extends State<CartAppBar> {
   }
 
   void _deleteOnClick() {
-    //TODO: 10. Make an empty cart function
+    final cart = Provider.of<Cart>(context, listen: false);
+    cart.emptyCart();
   }
 
   void _categoryOnClick(BuildContext context) {
@@ -84,7 +87,7 @@ class _CartAppBarState extends State<CartAppBar> {
     double screenHeight = MediaQuery.of(context).size.height;
     double appBarHeight = 56;
     double dragStart;
-    //TODO: 6. Add provider for cart
+    final cart = Provider.of<Cart>(context, listen: false);
 
     return GestureDetector(
       onVerticalDragStart: (d) {
@@ -145,15 +148,24 @@ class _CartAppBarState extends State<CartAppBar> {
                   children: <Widget>[
                     Expanded(
                       child: ListView(
-                        //TODO: 7. Show cart content
-                        //Change placeholder children below
-                        children: <Widget>[
-                          CartListTile(
-                            product: product,
-                            quantity: quantity,
-                          ),
-                        ],
-                      ),
+                          children: List.generate(cart.uniqueProducts.length,
+                              (index) {
+                        final product = cart.uniqueProducts[index];
+
+                        return Observer(
+                          builder: (_) {
+                            final quantity = cart.getProductQuantity(product);
+                            if (quantity > 0) {
+                              return CartListTile(
+                                product: product,
+                                quantity: quantity,
+                              );
+                            } else {
+                              return const SizedBox();
+                            }
+                          },
+                        );
+                      })),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(15),
@@ -162,11 +174,22 @@ class _CartAppBarState extends State<CartAppBar> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
-                              //TODO: 8. Show cart value and freight cost if any.
-                              //Change placeholder Text widget below
-                              Text(
-                                "\$${product.price * quantity}",
-                                style: AppFonts.cartValue(),
+                              Observer(
+                                builder: (_) {
+                                  return Row(
+                                    children: <Widget>[
+                                      Text(
+                                        '\$${cart.cartValue}',
+                                        style: AppFonts.cartValue(),
+                                      ),
+                                      if (cart.freight != 0)
+                                        Text(
+                                          " + \$${cart.freight}",
+                                          style: AppFonts.cartValue(),
+                                        )
+                                    ],
+                                  );
+                                },
                               ),
                               RaisedButton(
                                 shape: RoundedRectangleBorder(
